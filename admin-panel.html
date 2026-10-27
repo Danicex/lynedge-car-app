@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vehicle Inspections - Admin</title>
+<style>
+  :root {
+    --navy: #1f2f6b; --red: #d9472b; --line: #c9d0dc; --head: #dfe5ee; --bg: #f3f5f9;
+    --text: #1d2433; --muted: #5c667a; --good: #1c7c4a; --warn: #b4540a;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; font-family: "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+  button, input { font: inherit; }
+  .btn { padding: 9px 16px; border-radius: 6px; border: 1px solid var(--navy); background: #fff; color: var(--navy); font-weight: 600; cursor: pointer; }
+  .btn.pri { background: var(--navy); color: #fff; }
+  .btn:disabled { opacity: .6; cursor: wait; }
+  .btn.sm { padding: 5px 10px; font-size: 13px; }
+  input[type=text], input[type=email], input[type=password], input[type=date] {
+    width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fbfcfe;
+  }
+  input:focus { outline: 2px solid var(--navy); background: #fff; }
+  label.f { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .mark { width: 46px; height: 32px; border-radius: 50%; background: var(--navy); color: #fff; font: italic 700 13px Georgia, serif; display: grid; place-items: center; border: 2px solid var(--red); }
+  .brand b { display: block; font-size: 20px; color: var(--navy); letter-spacing: .5px; line-height: 1; }
+  .brand small { color: var(--navy); font-size: 10px; font-weight: 600; }
+
+  /* login */
+  #loginView { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+  .card { background: #fff; border-radius: 10px; box-shadow: 0 2px 14px rgba(0,0,0,.08); padding: 26px; width: 100%; max-width: 380px; }
+  .card h1 { font-size: 18px; color: var(--navy); margin: 18px 0 14px; }
+  .card .field { margin-bottom: 12px; }
+  .err { background: #fdecea; color: #8a1f11; padding: 9px 11px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
+  .ok { background: #e6f4ec; color: #14573a; padding: 9px 11px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
+
+  /* app */
+  .topbar { background: #fff; border-bottom: 2px solid var(--navy); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .who { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; }
+  main { max-width: 1400px; margin: 0 auto; padding: 18px 20px 40px; }
+  .filters { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+  .filters .grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 12px 0 8px; flex-wrap: wrap; }
+  .toolbar .btns { display: flex; gap: 8px; }
+  .count { color: var(--muted); }
+
+  .tablewrap { background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 980px; }
+  th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--head); font-size: 12px; text-transform: uppercase; letter-spacing: .3px; white-space: nowrap; }
+  tr.flag td { background: #fff7ee; }
+  td.num, th.num { text-align: right; }
+  .pill { display: inline-block; min-width: 26px; text-align: center; padding: 1px 8px; border-radius: 10px; font-weight: 600; font-size: 12px; }
+  .pill.g { background: #e6f4ec; color: var(--good); }
+  .pill.n { background: #ffe9d1; color: var(--warn); }
+  .pill.z { background: #eef0f4; color: var(--muted); }
+  .empty { padding: 30px; text-align: center; color: var(--muted); }
+
+  /* modal / report */
+  .modal { position: fixed; inset: 0; background: rgba(20,28,50,.55); overflow-y: auto; padding: 20px; z-index: 10; }
+  .modal-box { background: #fff; max-width: 860px; margin: 0 auto; border-radius: 10px; padding: 22px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
+  .report h2 { font-size: 17px; color: var(--navy); text-transform: uppercase; margin: 14px 0 4px; }
+  .report .rhead { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--navy); padding-bottom: 10px; }
+  .report .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--line); margin: 12px 0; }
+  .report .meta div { padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  .report .meta div:nth-child(odd) { border-right: 1px solid var(--line); }
+  .report .meta span { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+  .report h3 { font-size: 13px; color: var(--navy); text-transform: uppercase; margin: 16px 0 6px; }
+  .report table { min-width: 0; font-size: 13px; }
+  .report th, .report td { padding: 6px 8px; border: 1px solid var(--line); }
+  .st-g { color: var(--good); font-weight: 700; }
+  .st-n { color: var(--warn); font-weight: 700; }
+  .sig { border: 1px solid var(--line); max-width: 260px; max-height: 110px; display: block; margin-top: 6px; }
+  .print-only { display: none; }
+
+  @media print {
+    body { background: #fff; font-size: 11px; }
+    .noprint { display: none !important; }
+    .print-only { display: block !important; }
+    body.print-table #loginView, body.print-table #modal { display: none !important; }
+    body.print-report #loginView, body.print-report #appView { display: none !important; }
+    body.print-report #modal { position: static; background: none; padding: 0; overflow: visible; }
+    body.print-report .modal-box { box-shadow: none; max-width: none; padding: 0; margin: 0; border-radius: 0; }
+    main { padding: 0; max-width: none; }
+    .tablewrap { border: 0; overflow: visible; border-radius: 0; }
+    table { min-width: 0; font-size: 10px; }
+    th, td { padding: 4px 5px; }
+    thead { display: table-header-group; }
+    tr, .report .sec { break-inside: avoid; }
+    .col-action { display: none; }
+    tr.flag td { background: #fff7ee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginView" hidden>
+  <form class="card" id="loginForm" novalidate>
+    <div class="brand"><div class="mark">edge</div><div><b>LYN - EDGE</b><small>PHARMACEUTICALS LTD.</small></div></div>
+    <h1>Admin sign in</h1>
+    <div id="loginMsg" hidden></div>
+    <div class="field"><label class="f" for="email">Email</label><input type="email" id="email" autocomplete="username" required></div>
+    <div class="field"><label class="f" for="password">Password</label><input type="password" id="password" autocomplete="current-password" required></div>
+    <button class="btn pri" id="loginBtn" type="submit" style="width:100%">Sign in</button>
+  </form>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="appView" hidden>
+  <header class="topbar noprint">
+    <div class="brand"><div class="mark">edge</div><div><b>LYN - EDGE</b><small>VEHICLE INSPECTIONS</small></div></div>
+    <div class="who"><span id="whoEmail"></span><button class="btn sm" id="logoutBtn" type="button">Log out</button></div>
+  </header>
+
+  <main>
+    <section class="filters noprint">
+      <div class="grid" id="filterGrid"></div>
+      <div style="margin-top:10px"><button class="btn sm" id="clearBtn" type="button">Clear filters</button></div>
+    </section>
+
+    <div class="toolbar noprint">
+      <div class="count" id="count"></div>
+      <div class="btns">
+        <button class="btn" id="refreshBtn" type="button">Refresh</button>
+        <button class="btn pri" id="printTableBtn" type="button">Print table</button>
+      </div>
+    </div>
+    <div id="appMsg" class="noprint" hidden></div>
+
+    <div id="tableArea">
+      <div class="print-only" id="printHead"></div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Date</th><th>Territory</th><th>Supervisor</th><th>Driver</th>
+              <th>Reg. No.</th><th>Make / Model</th><th class="num">Odometer (km)</th>
+              <th class="num">Good</th><th class="num">Attention</th><th class="col-action noprint"></th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="empty" id="empty" hidden>No inspections match.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ DETAIL / REPORT ============ -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-box">
+    <div class="modal-actions noprint">
+      <button class="btn pri" id="printReportBtn" type="button">Print report</button>
+      <button class="btn" id="closeModalBtn" type="button">Close</button>
+    </div>
+    <div class="report" id="report"></div>
+  </div>
+</div>
+
+<style id="pageStyle"></style>
+
+<script>
+/* ================= CONFIG ================= */
+const API_BASE = (window.API_BASE || "http://localhost:8001").replace(/\/$/, ""); // <-- your API address
+const PAGE_SIZE = 200; // API maximum per request
+
+const FILTERS = [
+  { key: "territory_name",        label: "Territory name",        type: "text" },
+  { key: "inspection_date",       label: "Inspection date",       type: "date" },
+  { key: "field_supervisor_name", label: "Field supervisor",      type: "text" },
+  { key: "vehicle_user_driver",   label: "Vehicle user / driver", type: "text" },
+  { key: "vehicle_registration_no", label: "Registration no.",    type: "text" },
+  { key: "vehicle_make_model",    label: "Vehicle make / model",  type: "text" },
+];
+
+/* ================= HELPERS ================= */
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (_) {} },
+};
+const K = { token: "lyn_admin_token", exp: "lyn_admin_token_exp", email: "lyn_admin_email" };
+
+function show(el, msg, cls) { el.className = cls; el.textContent = msg; el.hidden = false; }
+function hide(el) { el.hidden = true; el.textContent = ""; }
+
+let records = [];
+let expiryTimer = null;
+
+/* ================= SESSION ================= */
+function tokenValid() {
+  const t = store.get(K.token), exp = store.get(K.exp);
+  return !!t && !!exp && new Date(exp).getTime() > Date.now();
+}
+
+function scheduleExpiry() {
+  clearTimeout(expiryTimer);
+  const ms = new Date(store.get(K.exp)).getTime() - Date.now();
+  if (ms > 0) expiryTimer = setTimeout(() => logout("Your session expired. Please sign in again."), Math.min(ms, 2147483647));
+}
+
+function showLogin(message) {
+  $("appView").hidden = true; $("modal").hidden = true; $("loginView").hidden = false;
+  if (message) show($("loginMsg"), message, "err"); else hide($("loginMsg"));
+}
+
+function showApp() {
+  $("loginView").hidden = true; $("appView").hidden = false;
+  $("whoEmail").textContent = store.get(K.email) || "";
+  scheduleExpiry();
+  loadAll();
+}
+
+function logout(message) {
+  clearTimeout(expiryTimer);
+  store.del(K.token); store.del(K.exp); store.del(K.email);
+  records = [];
+  showLogin(message);
+}
+
+async function api(path, options = {}) {
+  if (!tokenValid()) { logout("Your session expired. Please sign in again."); throw new Error("expired"); }
+  const res = await fetch(API_BASE + path, {
+    ...options,
+    headers: { ...(options.headers || {}), Authorization: "Bearer " + store.get(K.token) },
+  });
+  if (res.status === 401) { logout("Your session expired. Please sign in again."); throw new Error("unauthorized"); }
+  return res;
+}
+
+/* ================= LOGIN ================= */
+$("loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const email = $("email").value.trim(), password = $("password").value;
+  if (!email || !password) { show($("loginMsg"), "Enter your email and password.", "err"); return; }
+  $("loginBtn").disabled = true; $("loginBtn").textContent = "Signing in...";
+  try {
+    const res = await fetch(API_BASE + "/api/auth/login", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = res.status === 429 ? "Too many failed attempts. Try again in a few minutes."
+        : res.status === 401 ? "Invalid email or password." : (data.detail || "Login failed (" + res.status + ").");
+      show($("loginMsg"), typeof msg === "string" ? msg : "Login failed.", "err");
+      return;
+    }
+    store.set(K.token, data.token); store.set(K.exp, data.expires_at); store.set(K.email, data.admin ? data.admin.email : email);
+    $("password").value = "";
+    showApp();
+  } catch (_) {
+    show($("loginMsg"), "Cannot reach the server. Check the API address and your connection.", "err");
+  } finally {
+    $("loginBtn").disabled = false; $("loginBtn").textContent = "Sign in";
+  }
+});
+
+$("logoutBtn").addEventListener("click", async () => {
+  try { await api("/api/auth/logout", { method: "POST" }); } catch (_) {}
+  logout();
+});
+
+/* ================= DATA ================= */
+async function loadAll() {
+  hide($("appMsg"));
+  $("count").textContent = "Loading...";
+  $("refreshBtn").disabled = true;
+  try {
+    const all = [];
+    let offset = 0, total = Infinity;
+    while (offset < total) {
+      const res = await api(`/api/vehicle-inspections?limit=${PAGE_SIZE}&offset=${offset}`);
+      if (!res.ok) throw new Error("Server responded " + res.status);
+      const data = await res.json();
+      total = data.total;
+      if (!data.results.length) break;
+      all.push(...data.results);
+      offset += data.results.length;
+    }
+    records = all;
+    render();
+  } catch (err) {
+    if (err.message === "expired" || err.message === "unauthorized") return;
+    $("count").textContent = "";
+    show($("appMsg"), "Could not load inspections: " + err.message, "err");
+  } finally {
+    $("refreshBtn").disabled = false;
+  }
+}
+
+/* ================= FILTER + TABLE ================= */
+function buildFilters() {
+  $("filterGrid").innerHTML = FILTERS.map(f =>
+    `<div><label class="f" for="flt_${f.key}">${esc(f.label)}</label>` +
+    `<input type="${f.type}" id="flt_${f.key}" data-key="${f.key}" ${f.type === "text" ? 'placeholder="Search..." autocomplete="off"' : ""}></div>`
+  ).join("");
+  $("filterGrid").addEventListener("input", render);
+  $("clearBtn").addEventListener("click", () => {
+    $("filterGrid").querySelectorAll("input").forEach(i => { i.value = ""; });
+    render();
+  });
+}
+
+function activeFilters() {
+  return FILTERS.map(f => ({ ...f, value: $("flt_" + f.key).value.trim() })).filter(f => f.value);
+}
+
+function matches(rec, active) {
+  return active.every(f => {
+    const v = String(rec[f.key] ?? "");
+    return f.type === "date" ? v.slice(0, 10) === f.value : v.toLowerCase().includes(f.value.toLowerCase());
+  });
+}
+
+function render() {
+  const active = activeFilters();
+  const list = records.filter(r => matches(r, active));
+  $("rows").innerHTML = list.map(r => `
+    <tr class="${r.needs_attention_count > 0 ? "flag" : ""}">
+      <td>${esc(r.id)}</td>
+      <td>${esc(r.inspection_date)}</td>
+      <td>${esc(r.territory_name)}</td>
+      <td>${esc(r.field_supervisor_name)}</td>
+      <td>${esc(r.vehicle_user_driver)}</td>
+      <td>${esc(r.vehicle_registration_no)}</td>
+      <td>${esc(r.vehicle_make_model)}</td>
+      <td class="num">${esc(Number(r.odometer_km).toLocaleString())}</td>
+      <td class="num"><span class="pill g">${esc(r.good_count)}</span></td>
+      <td class="num"><span class="pill ${r.needs_attention_count > 0 ? "n" : "z"}">${esc(r.needs_attention_count)}</span></td>
+      <td class="col-action noprint"><button class="btn sm" data-view="${esc(r.id)}" type="button">View</button></td>
+    </tr>`).join("");
+  $("empty").hidden = list.length > 0;
+  $("count").textContent = `Showing ${list.length} of ${records.length} inspection${records.length === 1 ? "" : "s"}`;
+
+  const filterText = active.length ? active.map(f => `${f.label}: ${f.value}`).join(" | ") : "None";
+  $("printHead").innerHTML =
+    `<div style="border-bottom:2px solid #1f2f6b;padding-bottom:6px;margin-bottom:8px">
+       <b style="font-size:15px;color:#1f2f6b">LYN-EDGE PHARMACEUTICALS LTD</b><br>
+       <b>Vehicle Maintenance Inspection Records</b></div>
+     <div style="margin-bottom:8px">Printed: ${esc(new Date().toLocaleString())} &nbsp;|&nbsp; Records: ${list.length} &nbsp;|&nbsp; Filters: ${esc(filterText)}</div>`;
+}
+
+$("rows").addEventListener("click", e => {
+  const b = e.target.closest("[data-view]");
+  if (b) openReport(Number(b.dataset.view));
+});
+
+/* ================= REPORT (detail) ================= */
+function openReport(id) {
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+
+  const groups = [];
+  (r.items || []).forEach(it => {
+    let g = groups.find(x => x.title === it.section_title);
+    if (!g) { g = { title: it.section_title, items: [] }; groups.push(g); }
+    g.items.push(it);
+  });
+
+  // the public form can submit anything: only render the signature if it is a PNG data URL
+  const sig = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(r.supervisor_signature || "")
+    ? `<img class="sig" alt="Supervisor signature" src="${r.supervisor_signature}">` : "<div>(no valid signature)</div>";
+
+  const meta = [
+    ["Territory Name", r.territory_name], ["Inspection Date", r.inspection_date],
+    ["Field Supervisor's Name", r.field_supervisor_name], ["Vehicle Registration No.", r.vehicle_registration_no],
+    ["Vehicle User/Driver", r.vehicle_user_driver], ["Vehicle Make/Model", r.vehicle_make_model],
+    ["Odometer Reading (km)", Number(r.odometer_km).toLocaleString()], ["Submitted", r.submitted_at ? new Date(r.submitted_at).toLocaleString() : r.created_at],
+  ].map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("");
+
+  $("report").innerHTML = `
+    <div class="rhead">
+      <div class="brand"><div class="mark">edge</div><div><b>LYN - EDGE</b><small>PHARMACEUTICALS LTD.</small></div></div>
+      <div style="text-align:right;font-size:12px"><b>LYN-EDGE PHARMACEUTICALS LTD</b><br>Record #${esc(r.id)}</div>
+    </div>
+    <h2>Bi-Annual Official Vehicle Maintenance Inspection Checklist</h2>
+    <div class="meta">${meta}</div>
+    <div><b>Result:</b> <span class="st-g">${esc(r.good_count)} Good</span> &nbsp; <span class="st-n">${esc(r.needs_attention_count)} Needs Attention</span></div>
+    ${groups.map(g => `
+      <div class="sec"><h3>${esc(g.title)}</h3>
+      <table>
+        <thead><tr><th>Inspection Item</th><th style="width:110px">Status</th><th style="width:30%">Remarks / Action Required</th></tr></thead>
+        <tbody>${g.items.map(it => `<tr><td>${esc(it.item)}</td>
+          <td class="${it.status === "Good" ? "st-g" : "st-n"}">${esc(it.status)}</td><td>${esc(it.remarks)}</td></tr>`).join("")}</tbody>
+      </table></div>`).join("")}
+    ${r.overall_remarks ? `<div class="sec"><h3>Overall remarks</h3><div>${esc(r.overall_remarks)}</div></div>` : ""}
+    <div class="sec"><h3>Supervisor's signature</h3>${sig}</div>`;
+  $("modal").hidden = false;
+  $("modal").scrollTop = 0;
+}
+
+$("closeModalBtn").addEventListener("click", () => { $("modal").hidden = true; });
+$("modal").addEventListener("click", e => { if (e.target === $("modal")) $("modal").hidden = true; });
+
+/* ================= PRINT ================= */
+function doPrint(mode, orientation) {
+  $("pageStyle").textContent = `@page { size: A4 ${orientation}; margin: 10mm; }`;
+  document.body.classList.add(mode);
+  const cleanup = () => { document.body.classList.remove(mode); window.removeEventListener("afterprint", cleanup); };
+  window.addEventListener("afterprint", cleanup);
+  window.print();
+}
+$("printTableBtn").addEventListener("click", () => doPrint("print-table", "landscape"));
+$("printReportBtn").addEventListener("click", () => doPrint("print-report", "portrait"));
+$("refreshBtn").addEventListener("click", loadAll);
+
+/* ================= INIT ================= */
+buildFilters();
+if (tokenValid()) showApp(); else { if (store.get(K.token)) logout("Your session expired. Please sign in again."); else showLogin(); }
+</script>
+</body>
+</html>

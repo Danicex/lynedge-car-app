@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bi-Annual Official Vehicle Maintenance Inspection Checklist</title>
+<style>
+  :root {
+    --navy: #1f2f6b;
+    --red: #d9472b;
+    --line: #c9d0dc;
+    --head: #dfe5ee;
+    --bg: #f3f5f9;
+    --text: #1d2433;
+    --muted: #5c667a;
+    --good: #1c7c4a;
+    --warn: #b4540a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+  .sheet { max-width: 900px; margin: 0 auto; background: #fff; min-height: 100vh; padding: 20px 20px 40px; }
+  @media (min-width: 940px) { .sheet { margin: 20px auto; min-height: 0; border-radius: 8px; box-shadow: 0 2px 14px rgba(0,0,0,.08); } }
+
+  header.top { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--navy); padding-bottom: 12px; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .mark { width: 46px; height: 32px; border-radius: 50%; background: var(--navy); color: #fff; font: italic 700 13px Georgia, serif; display: grid; place-items: center; border: 2px solid var(--red); }
+  .brand b { display: block; font-size: 22px; color: var(--navy); letter-spacing: .5px; line-height: 1; }
+  .brand small { color: var(--navy); font-size: 11px; font-weight: 600; }
+  .company { text-align: right; font-size: 12px; font-weight: 700; letter-spacing: .5px; }
+  .company span { display: block; font-weight: 400; color: var(--muted); margin-top: 4px; }
+
+  h1 { font-size: 20px; color: var(--navy); margin: 18px 0 4px; text-transform: uppercase; letter-spacing: .5px; }
+  .sub { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+
+  .progress { display: flex; gap: 6px; margin: 14px 0 6px; }
+  .progress i { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+  .progress i.done { background: var(--navy); }
+  .progress i.cur { background: var(--red); }
+  .pagelabel { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 14px; }
+  @media (min-width: 640px) { .grid { grid-template-columns: 1fr 1fr; } }
+  label.f { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  label.f em { color: var(--red); font-style: normal; }
+  input[type=text], input[type=date], input[type=number], textarea {
+    width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 6px; font: inherit; background: #fbfcfe;
+  }
+  input:focus, textarea:focus { outline: 2px solid var(--navy); outline-offset: 0; background: #fff; }
+  textarea { min-height: 90px; resize: vertical; }
+
+  .guide { background: #fff8ec; border-left: 4px solid #e8a23a; padding: 10px 12px; font-size: 13px; color: #5a4a22; border-radius: 4px; margin: 6px 0 16px; }
+
+  .sigbox { border: 1px dashed var(--muted); border-radius: 6px; background: #fbfcfe; touch-action: none; width: 100%; height: 120px; display: block; }
+  .sigtools { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .linkbtn { background: none; border: 0; color: var(--navy); text-decoration: underline; cursor: pointer; font: inherit; padding: 0; }
+
+  h2 { font-size: 15px; color: var(--navy); margin: 22px 0 8px; text-transform: uppercase; letter-spacing: .4px; }
+  .tbl { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .row { display: grid; grid-template-columns: 1fr; border-top: 1px solid var(--line); padding: 10px 12px; gap: 8px; }
+  .row.hd { display: none; background: var(--head); font-weight: 700; font-size: 13px; border-top: 0; }
+  .row.err { background: #fff1ef; }
+  .item { font-size: 14px; }
+  .opts { display: flex; gap: 16px; }
+  .opts label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+  .opts input { width: 20px; height: 20px; accent-color: var(--navy); }
+  .opts .g input { accent-color: var(--good); }
+  .opts .n input { accent-color: var(--warn); }
+  .rem { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; font-size: 13px; }
+  .rem.need { border-color: var(--warn); background: #fff7ee; }
+  @media (min-width: 720px) {
+    .row { grid-template-columns: 1fr 90px 120px 1.1fr; align-items: center; }
+    .row.hd { display: grid; }
+    .opts { display: contents; }
+    .opts label { justify-content: center; }
+    .opts label span { display: none; }
+  }
+
+  .msg { margin-top: 14px; padding: 10px 12px; border-radius: 6px; font-size: 14px; display: none; }
+  .msg.err { display: block; background: #fdecea; color: #8a1f11; }
+  .msg.ok { display: block; background: #e6f4ec; color: #14573a; }
+
+  .summary { border: 1px solid var(--line); border-radius: 6px; padding: 12px; font-size: 14px; margin-bottom: 14px; }
+  .summary .stats { display: flex; gap: 20px; font-weight: 600; margin-bottom: 8px; }
+  .summary .stats .g { color: var(--good); } .summary .stats .n { color: var(--warn); }
+  .summary ul { margin: 6px 0 0; padding-left: 20px; }
+  .summary li { margin-bottom: 4px; }
+  .summary li small { color: var(--muted); display: block; }
+  .critical { background: #fdecea; border: 1px solid #f0b5ac; color: #8a1f11; padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 14px; }
+  .confirm { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; margin-top: 10px; }
+  .confirm input { width: 20px; height: 20px; margin-top: 1px; }
+
+  .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 24px; position: sticky; bottom: 0; background: #fff; padding: 12px 0; border-top: 1px solid var(--line); }
+  button.btn { padding: 11px 22px; border-radius: 6px; border: 1px solid var(--navy); font: inherit; font-weight: 600; cursor: pointer; }
+  .btn.sec { background: #fff; color: var(--navy); }
+  .btn.pri { background: var(--navy); color: #fff; }
+  .btn.sub { background: var(--good); border-color: var(--good); color: #fff; }
+  .btn:disabled { opacity: .6; cursor: wait; }
+  footer { font-size: 12px; color: var(--muted); margin-top: 8px; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header class="top">
+    <div class="brand">
+      <div class="mark">edge</div>
+      <div><b>LYN - EDGE</b><small>PHARMACEUTICALS LTD.</small></div>
+    </div>
+    <div class="company">LYN-EDGE PHARMACEUTICALS LTD<span id="pageTop">1 / 5</span></div>
+  </header>
+
+  <h1>Bi-Annual Official Vehicle Maintenance Inspection Checklist</h1>
+  <p class="sub">To be completed by the Field Supervisor for every official vehicle assigned to the team</p>
+
+  <div class="progress" id="progress"></div>
+  <div class="pagelabel" id="pageLabel"></div>
+
+  <form id="form" novalidate>
+    <!-- PAGE 1 -->
+    <section class="page" data-page="1">
+      <div class="grid">
+        <div><label class="f" for="territory">Territory Name <em>*</em></label><input type="text" id="territory" name="territory_name" required></div>
+        <div><label class="f" for="inspDate">Inspection Date <em>*</em></label><input type="date" id="inspDate" name="inspection_date" required></div>
+        <div><label class="f" for="supName">Field Supervisor's Name <em>*</em></label><input type="text" id="supName" name="field_supervisor_name" required></div>
+        <div>
+          <label class="f">Supervisor's Signature <em>*</em></label>
+          <canvas id="sig" class="sigbox"></canvas>
+          <div class="sigtools"><span>Sign with finger or mouse</span><button type="button" class="linkbtn" id="sigClear">Clear</button></div>
+        </div>
+        <div><label class="f" for="driver">Vehicle User/Driver <em>*</em></label><input type="text" id="driver" name="vehicle_user_driver" required></div>
+        <div><label class="f" for="reg">Vehicle Registration No. <em>*</em></label><input type="text" id="reg" name="vehicle_registration_no" required></div>
+        <div><label class="f" for="model">Vehicle Make/Model <em>*</em></label><input type="text" id="model" name="vehicle_make_model" required></div>
+        <div><label class="f" for="odo">Odometer Reading (km) <em>*</em></label><input type="number" id="odo" name="odometer_km" min="0" inputmode="numeric" required></div>
+      </div>
+      <div class="guide"><b>Inspection guidance:</b> Mark one status for each item. Record defects in the remarks/action column. Any safety-critical defect must be reported immediately and the vehicle should not be used until it is deemed safe.</div>
+      <div data-sections="A,B"></div>
+    </section>
+
+    <!-- PAGE 2 -->
+    <section class="page" data-page="2"><div data-sections="C,D"></div></section>
+    <!-- PAGE 3 -->
+    <section class="page" data-page="3"><div data-sections="E,F"></div></section>
+    <!-- PAGE 4 -->
+    <section class="page" data-page="4"><div data-sections="G,H"></div></section>
+
+    <!-- PAGE 5 -->
+    <section class="page" data-page="5">
+      <h2>Review &amp; Submit</h2>
+      <div class="summary" id="summary"></div>
+      <div id="criticalNote"></div>
+      <label class="f" for="overall">Overall remarks (optional)</label>
+      <textarea id="overall" name="overall_remarks" placeholder="Any additional comments about this vehicle"></textarea>
+      <label class="confirm"><input type="checkbox" id="confirm"> <span>I confirm that this inspection was carried out by me and the information above is accurate.</span></label>
+    </section>
+
+    <div class="msg" id="msg" role="alert"></div>
+
+    <div class="nav">
+      <button type="button" class="btn sec" id="prev">Back</button>
+      <button type="button" class="btn pri" id="next">Next</button>
+      <button type="submit" class="btn sub" id="submit" style="display:none">Submit Inspection</button>
+    </div>
+    <footer><span>LYN-EDGE PHARMACEUTICALS LTD</span><span id="pageBottom">1 / 5</span></footer>
+  </form>
+   <a href="./admin-panel.html"><button type="button" class="btn sec">admin page</button></a> 
+</div>
+
+<script>
+/* ============ CONFIG ============ */
+const API_URL = "http://127.0.0.1:8001/api/vehicle-inspections"; // <-- replace with your endpoint
+const API_HEADERS = { "Content-Type": "application/json" };            // add Authorization here if needed
+const TOTAL_PAGES = 5;
+
+/* ============ CHECKLIST DATA ============ */
+const SECTIONS = {
+  A: { title: "A. Tyres & Wheels", items: [
+    "All tyres have adequate tread; no excessive or uneven wear",
+    "No cuts, bulges, cracks, exposed cords or other visible damage",
+    "Tyre pressure checked and adjusted to recommended level",
+    "Spare tyre present, serviceable and properly inflated",
+    "Wheel nuts secure; rims/wheels show no visible damage",
+    "Jack, wheel spanner and other tyre-changing tools available" ]},
+  B: { title: "B. Exterior Body & Paintwork", items: [
+    "Vehicle body panels inspected for dents, scratches, rust or damage",
+    "Paintwork in acceptable condition; peeling or major damage noted",
+    "Bumpers, mirrors, door handles and number plates secure",
+    "Windscreen and windows free from cracks that affect visibility",
+    "Doors, boot/tailgate and bonnet open, close and latch properly" ]},
+  C: { title: "C. Interior, Seats & Safety Equipment", items: [
+    "Seats, seat belts and buckles in good condition and functional",
+    "Dashboard, controls and instrument cluster in good condition",
+    "Cabin clean; upholstery and interior trim in acceptable condition",
+    "Horn functioning",
+    "Air conditioning/ventilation functioning (where fitted)",
+    "Fire extinguisher, first-aid kit and warning triangle available (where required)" ]},
+  D: { title: "D. Wipers, Lights & Visibility", items: [
+    "Front and rear wipers functioning; blades in good condition",
+    "Windscreen washer fluid available and washers functioning",
+    "Headlights (high and low beam) functioning",
+    "Front/rear parking lights and tail lights functioning",
+    "Brake lights functioning",
+    "Left and right indicators/hazard lights functioning",
+    "Reverse light and fog lights functioning (where fitted)",
+    "Reflectors and number-plate lights functioning" ]},
+  E: { title: "E. Engine, Oils & Fluids", items: [
+    "Engine oil level checked; condition/clarity acceptable and no visible leaks",
+    "Gearbox/gear oil level and condition checked as applicable",
+    "Brake fluid level checked",
+    "Coolant level checked; no visible coolant leaks",
+    "Power steering fluid checked (where applicable)",
+    "Battery condition and terminals checked",
+    "No unusual engine noise, warning lights, smoke or fluid leaks observed" ]},
+  F: { title: "F. Brakes, Steering & General Mechanical Condition", items: [
+    "Brake pedal and parking brake functioning properly",
+    "Steering operates normally; no excessive play or unusual noise",
+    "Suspension/shock absorbers checked for obvious damage or leakage",
+    "Clutch and gear shifting operate normally (where applicable)",
+    "Exhaust system appears secure; no unusual exhaust noise",
+    "No abnormal vibration or unusual noise during safe functional check" ]},
+  G: { title: "G. Vehicle Documents & Compliance", items: [
+    "Vehicle licence/registration documents valid and available",
+    "Insurance valid and documentation available",
+    "Roadworthiness certificate valid (where applicable)",
+    "Vehicle particulars/required statutory papers up to date",
+    "Other required permits, approvals or fleet documents valid",
+    "Expiry dates recorded and upcoming renewals flagged" ]},
+  H: { title: "H. Cleanliness & General Readiness", items: [
+    "Exterior washed and reasonably clean",
+    "Interior and seats clean and free from excessive damage",
+    "Boot/trunk and storage areas tidy; unnecessary items removed",
+    "Vehicle service record available and latest service date recorded",
+    "Next service due date/odometer reading recorded" ]}
+};
+// Sections where a "Needs Attention" is considered safety-relevant for the summary warning
+const SAFETY_SECTIONS = ["A", "D", "E", "F"];
+
+/* ============ BUILD CHECKLIST TABLES ============ */
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+document.querySelectorAll("[data-sections]").forEach(holder => {
+  holder.dataset.sections.split(",").forEach(key => {
+    const sec = SECTIONS[key];
+    let html = `<h2>${esc(sec.title)}</h2><div class="tbl">
+      <div class="row hd"><div>Inspection Item</div><div style="text-align:center">Good</div><div style="text-align:center">Needs Attention</div><div>Remarks / Action Required</div></div>`;
+    sec.items.forEach((text, i) => {
+      const id = `${key}${i + 1}`;
+      html += `<div class="row" data-id="${id}" data-section="${key}">
+        <div class="item">${esc(text)}</div>
+        <div class="opts">
+          <label class="g"><input type="radio" name="status_${id}" value="Good"><span>Good</span></label>
+          <label class="n"><input type="radio" name="status_${id}" value="Needs Attention"><span>Needs Attention</span></label>
+        </div>
+        <input type="text" class="rem" name="remarks_${id}" placeholder="Remarks / action required" aria-label="Remarks for ${esc(text)}">
+      </div>`;
+    });
+    html += `</div>`;
+    holder.insertAdjacentHTML("beforeend", html);
+  });
+});
+
+/* ============ SIGNATURE PAD ============ */
+const canvas = document.getElementById("sig");
+const ctx = canvas.getContext("2d");
+let drawing = false, signed = false;
+function sizeCanvas() {
+  const ratio = window.devicePixelRatio || 1;
+  const keep = signed ? canvas.toDataURL() : null;
+  canvas.width = canvas.clientWidth * ratio;
+  canvas.height = canvas.clientHeight * ratio;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#1d2433";
+  if (keep) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, canvas.clientWidth, canvas.clientHeight); img.src = keep; }
+}
+const pos = e => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+canvas.addEventListener("pointerdown", e => { drawing = true; canvas.setPointerCapture(e.pointerId); const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+canvas.addEventListener("pointermove", e => { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); signed = true; });
+["pointerup", "pointercancel"].forEach(ev => canvas.addEventListener(ev, () => { drawing = false; }));
+document.getElementById("sigClear").onclick = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); signed = false; };
+
+/* ============ PAGINATION ============ */
+let current = 1;
+const pages = [...document.querySelectorAll(".page")];
+const prevBtn = document.getElementById("prev"), nextBtn = document.getElementById("next"), submitBtn = document.getElementById("submit");
+const msg = document.getElementById("msg");
+const progress = document.getElementById("progress");
+progress.innerHTML = pages.map(() => "<i></i>").join("");
+
+function showMsg(text, type) { msg.textContent = text; msg.className = "msg " + (type || ""); if (type) msg.scrollIntoView({ behavior: "smooth", block: "center" }); }
+function clearMsg() { msg.className = "msg"; msg.textContent = ""; }
+
+function render() {
+  pages.forEach(p => p.classList.toggle("active", +p.dataset.page === current));
+  [...progress.children].forEach((b, i) => { b.className = i + 1 < current ? "done" : i + 1 === current ? "cur" : ""; });
+  const label = `${current} / ${TOTAL_PAGES}`;
+  document.getElementById("pageTop").textContent = label;
+  document.getElementById("pageBottom").textContent = label;
+  const titles = ["Vehicle details & Sections A–B", "Sections C–D", "Sections E–F", "Sections G–H", "Review & submit"];
+  document.getElementById("pageLabel").textContent = `Page ${current} of ${TOTAL_PAGES} — ${titles[current - 1]}`;
+  prevBtn.style.visibility = current === 1 ? "hidden" : "visible";
+  nextBtn.style.display = current === TOTAL_PAGES ? "none" : "";
+  submitBtn.style.display = current === TOTAL_PAGES ? "" : "none";
+  if (current === TOTAL_PAGES) buildSummary();
+  clearMsg();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* ============ VALIDATION ============ */
+function validatePage(n) {
+  const page = pages[n - 1];
+  let firstBad = null, problems = [];
+  if (n === 1) {
+    page.querySelectorAll("input[required]").forEach(inp => {
+      const bad = !inp.value.trim();
+      inp.style.borderColor = bad ? "var(--red)" : "";
+      if (bad) { firstBad = firstBad || inp; problems.push(inp.name); }
+    });
+    canvas.style.borderColor = signed ? "" : "var(--red)";
+    if (!signed) { firstBad = firstBad || canvas; problems.push("signature"); }
+  }
+  page.querySelectorAll(".row[data-id]").forEach(row => {
+    const id = row.dataset.id;
+    const val = form.querySelector(`input[name="status_${id}"]:checked`);
+    const rem = row.querySelector(".rem");
+    const needsRemark = val && val.value === "Needs Attention" && !rem.value.trim();
+    const bad = !val || needsRemark;
+    row.classList.toggle("err", bad);
+    if (bad) { firstBad = firstBad || row; problems.push(id); }
+  });
+  if (problems.length) {
+    showMsg(n === 1
+      ? "Please complete all required fields, sign, and mark a status for every item. Items marked 'Needs Attention' need a remark."
+      : "Please mark a status for every item. Items marked 'Needs Attention' need a remark.", "err");
+    firstBad.scrollIntoView({ behavior: "smooth", block: "center" });
+    return false;
+  }
+  return true;
+}
+
+const form = document.getElementById("form");
+form.addEventListener("change", e => {
+  const row = e.target.closest(".row[data-id]");
+  if (!row) return;
+  const val = form.querySelector(`input[name="status_${row.dataset.id}"]:checked`);
+  row.querySelector(".rem").classList.toggle("need", !!val && val.value === "Needs Attention");
+  row.classList.remove("err");
+});
+
+nextBtn.onclick = () => { if (validatePage(current)) { current++; render(); } };
+prevBtn.onclick = () => { if (current > 1) { current--; render(); } };
+
+/* ============ SUMMARY (PAGE 5) ============ */
+function collectItems() {
+  const out = [];
+  document.querySelectorAll(".row[data-id]").forEach(row => {
+    const id = row.dataset.id, key = row.dataset.section;
+    const val = form.querySelector(`input[name="status_${id}"]:checked`);
+    out.push({
+      id, section: key, section_title: SECTIONS[key].title,
+      item: row.querySelector(".item").textContent,
+      status: val ? val.value : null,
+      remarks: row.querySelector(".rem").value.trim()
+    });
+  });
+  return out;
+}
+function buildSummary() {
+  const items = collectItems();
+  const good = items.filter(i => i.status === "Good").length;
+  const need = items.filter(i => i.status === "Needs Attention");
+  let html = `<div class="stats"><span class="g">Good: ${good}</span><span class="n">Needs Attention: ${need.length}</span><span>Total: ${items.length}</span></div>`;
+  if (need.length) {
+    html += `<div>Items needing attention:</div><ul>` +
+      need.map(i => `<li>${esc(i.item)}<small>${esc(i.section_title)} — ${esc(i.remarks)}</small></li>`).join("") + `</ul>`;
+  } else html += `<div>No defects recorded.</div>`;
+  document.getElementById("summary").innerHTML = html;
+  const safety = need.filter(i => SAFETY_SECTIONS.includes(i.section));
+  document.getElementById("criticalNote").innerHTML = safety.length
+    ? `<div class="critical"><b>Safety check:</b> ${safety.length} item(s) in tyres, lights, fluids or brakes/steering need attention. Any safety-critical defect must be reported immediately and the vehicle should not be used until it is deemed safe.</div>` : "";
+}
+
+/* ============ SUBMIT VIA FETCH ============ */
+form.addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!document.getElementById("confirm").checked) { showMsg("Please tick the confirmation box before submitting.", "err"); return; }
+  for (let n = 1; n <= 4; n++) { if (!validatePage(n)) { current = n; render(); validatePage(n); return; } }
+
+  const items = collectItems();
+  const payload = {
+    territory_name: form.territory_name.value.trim(),
+    inspection_date: form.inspection_date.value,
+    field_supervisor_name: form.field_supervisor_name.value.trim(),
+    supervisor_signature: canvas.toDataURL("image/png"),
+    vehicle_user_driver: form.vehicle_user_driver.value.trim(),
+    vehicle_registration_no: form.vehicle_registration_no.value.trim(),
+    vehicle_make_model: form.vehicle_make_model.value.trim(),
+    odometer_km: Number(form.odometer_km.value),
+    items,
+    summary: { good: items.filter(i => i.status === "Good").length, needs_attention: items.filter(i => i.status === "Needs Attention").length },
+    overall_remarks: form.overall_remarks.value.trim(),
+    submitted_at: new Date().toISOString()
+  };
+
+  submitBtn.disabled = true; submitBtn.textContent = "Submitting...";
+  try {
+    const res = await fetch(API_URL, { method: "POST", headers: API_HEADERS, body: JSON.stringify(payload) });
+    if (!res.ok) {
+      let detail = ""; try { detail = (await res.json()).message || ""; } catch (_) {}
+      throw new Error(`Server responded ${res.status}${detail ? ": " + detail : ""}`);
+    }
+    showMsg("Inspection submitted successfully. Thank you.", "ok");
+    form.reset(); document.getElementById("sigClear").click();
+    document.querySelectorAll(".rem.need").forEach(r => r.classList.remove("need"));
+    submitBtn.style.display = "none"; prevBtn.style.visibility = "hidden";
+  } catch (err) {
+    showMsg("Could not submit: " + err.message + ". Your answers are still on this page, so please try again.", "err");
+    submitBtn.disabled = false; submitBtn.textContent = "Submit Inspection";
+  }
+});
+
+/* ============ INIT ============ */
+document.getElementById("inspDate").valueAsDate = new Date();
+window.addEventListener("resize", sizeCanvas);
+render(); sizeCanvas();
+</script>
+</body>
+</html>
