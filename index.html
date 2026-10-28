@@ -6,15 +6,8 @@
 <title>Bi-Annual Official Vehicle Maintenance Inspection Checklist</title>
 <style>
   :root {
-    --navy: #1f2f6b;
-    --red: #d9472b;
-    --line: #c9d0dc;
-    --head: #dfe5ee;
-    --bg: #f3f5f9;
-    --text: #1d2433;
-    --muted: #5c667a;
-    --good: #1c7c4a;
-    --warn: #b4540a;
+    --navy: #1f2f6b; --red: #d9472b; --line: #c9d0dc; --head: #dfe5ee; --bg: #f3f5f9;
+    --text: #1d2433; --muted: #5c667a; --good: #1c7c4a; --warn: #b4540a;
   }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
@@ -45,10 +38,10 @@
   @media (min-width: 640px) { .grid { grid-template-columns: 1fr 1fr; } }
   label.f { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
   label.f em { color: var(--red); font-style: normal; }
-  input[type=text], input[type=date], input[type=number], textarea {
+  input[type=text], input[type=date], input[type=number], select, textarea {
     width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 6px; font: inherit; background: #fbfcfe;
   }
-  input:focus, textarea:focus { outline: 2px solid var(--navy); outline-offset: 0; background: #fff; }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--navy); outline-offset: 0; background: #fff; }
   textarea { min-height: 90px; resize: vertical; }
 
   .guide { background: #fff8ec; border-left: 4px solid #e8a23a; padding: 10px 12px; font-size: 13px; color: #5a4a22; border-radius: 4px; margin: 6px 0 16px; }
@@ -78,6 +71,22 @@
     .opts label span { display: none; }
   }
 
+  /* corrective action plan */
+  .cap .row { gap: 6px; }
+  .cap .row input, .cap .row select { padding: 8px; font-size: 13px; }
+  .cap .cell > small { display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  @media (min-width: 720px) {
+    .cap .row { grid-template-columns: 1.5fr 1fr 1fr 1fr 1.3fr; }
+    .cap .cell > small { display: none; }
+  }
+  .addrow { margin-top: 8px; }
+
+  .status-opts { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+  .status-opts.err { border-color: var(--red); background: #fff1ef; }
+  .status-opts label { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; cursor: pointer; }
+  .status-opts input { width: 20px; height: 20px; accent-color: var(--navy); margin-top: 1px; }
+  @media (min-width: 720px) { .status-opts { flex-direction: row; gap: 24px; } }
+
   .msg { margin-top: 14px; padding: 10px 12px; border-radius: 6px; font-size: 14px; display: none; }
   .msg.err { display: block; background: #fdecea; color: #8a1f11; }
   .msg.ok { display: block; background: #e6f4ec; color: #14573a; }
@@ -89,8 +98,10 @@
   .summary li { margin-bottom: 4px; }
   .summary li small { color: var(--muted); display: block; }
   .critical { background: #fdecea; border: 1px solid #f0b5ac; color: #8a1f11; padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 14px; }
+  .declaration { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); margin-top: 18px; padding-top: 10px; }
   .confirm { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; margin-top: 10px; }
   .confirm input { width: 20px; height: 20px; margin-top: 1px; }
+  .block { margin-top: 16px; }
 
   .nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 24px; position: sticky; bottom: 0; background: #fff; padding: 12px 0; border-top: 1px solid var(--line); }
   button.btn { padding: 11px 22px; border-radius: 6px; border: 1px solid var(--navy); font: inherit; font-weight: 600; cursor: pointer; }
@@ -100,6 +111,7 @@
   .btn:disabled { opacity: .6; cursor: wait; }
   footer { font-size: 12px; color: var(--muted); margin-top: 8px; display: flex; justify-content: space-between; }
 </style>
+<script src="test-form.js"></script>
 </head>
 <body>
 <div class="sheet">
@@ -138,21 +150,55 @@
       <div data-sections="A,B"></div>
     </section>
 
-    <!-- PAGE 2 -->
     <section class="page" data-page="2"><div data-sections="C,D"></div></section>
-    <!-- PAGE 3 -->
     <section class="page" data-page="3"><div data-sections="E,F"></div></section>
-    <!-- PAGE 4 -->
     <section class="page" data-page="4"><div data-sections="G,H"></div></section>
 
     <!-- PAGE 5 -->
     <section class="page" data-page="5">
-      <h2>Review &amp; Submit</h2>
+      <h2>Review</h2>
       <div class="summary" id="summary"></div>
       <div id="criticalNote"></div>
-      <label class="f" for="overall">Overall remarks (optional)</label>
-      <textarea id="overall" name="overall_remarks" placeholder="Any additional comments about this vehicle"></textarea>
-      <label class="confirm"><input type="checkbox" id="confirm"> <span>I confirm that this inspection was carried out by me and the information above is accurate.</span></label>
+
+      <h2>Defects Identified &amp; Corrective Action Plan</h2>
+      <div class="tbl cap" id="cap">
+        <div class="row hd"><div>Defect / Repair Required</div><div>Priority (Urgent/Normal)</div><div>Action Owner</div><div>Target Date</div><div>Completed / Verified By &amp; Date</div></div>
+        <div id="capRows"></div>
+      </div>
+      <button type="button" class="btn sec addrow" id="addDefect">+ Add row</button>
+
+      <div class="block">
+        <label class="f">Overall vehicle status <em>*</em></label>
+        <div class="status-opts" id="statusOpts">
+          <label><input type="radio" name="overall_vehicle_status" value="Fit for use"> Fit for use</label>
+          <label><input type="radio" name="overall_vehicle_status" value="Fit after minor repairs"> Fit after minor repairs</label>
+          <label><input type="radio" name="overall_vehicle_status" value="Do not use until safety defects are corrected"> Do not use until safety defects are corrected</label>
+        </div>
+      </div>
+
+      <div class="grid block">
+        <div><label class="f" for="ackName">Driver / Vehicle User Acknowledgement (Name) <em>*</em></label><input type="text" id="ackName" name="driver_ack_name"></div>
+        <div>
+          <label class="f">Driver / Vehicle User Signature <em>*</em></label>
+          <canvas id="sigDriver" class="sigbox"></canvas>
+          <div class="sigtools"><span>Sign with finger or mouse</span><button type="button" class="linkbtn" id="sigDriverClear">Clear</button></div>
+        </div>
+      </div>
+
+      <div class="grid block">
+        <div>
+          <label class="f" for="overall">Supervisor's Final Comments</label>
+          <textarea id="overall" name="overall_remarks" placeholder="Any final comments about this vehicle"></textarea>
+        </div>
+        <div>
+          <label class="f">Supervisor's Signature <em>*</em></label>
+          <canvas id="sigFinal" class="sigbox"></canvas>
+          <div class="sigtools"><span>Sign with finger or mouse</span><button type="button" class="linkbtn" id="sigFinalClear">Clear</button></div>
+        </div>
+      </div>
+
+      <p class="declaration">Supervisor's declaration: I confirm that I have inspected the vehicle listed above, recorded observed defects accurately, and escalated any safety-critical issues for prompt corrective action.<br>Submit one completed checklist per vehicle to the designated manager after inspection.</p>
+      <label class="confirm"><input type="checkbox" id="confirm"> <span>I confirm the supervisor's declaration above.</span></label>
     </section>
 
     <div class="msg" id="msg" role="alert"></div>
@@ -164,13 +210,14 @@
     </div>
     <footer><span>LYN-EDGE PHARMACEUTICALS LTD</span><span id="pageBottom">1 / 5</span></footer>
   </form>
-   <a href="./admin-panel.html"><button type="button" class="btn sec">admin page</button></a> 
+   <a href="./admin-panel.html"><button type="button" class="btn sec">admin page</button></a>
 </div>
 
 <script>
 /* ============ CONFIG ============ */
-const API_URL = "https://lynedge-car-record.onrender.com/vehicle-inspections"; // <-- replace with your endpoint
-const API_HEADERS = { "Content-Type": "application/json" };            // add Authorization here if needed
+// const API_URL = "http://127.0.0.1:8000/api/vehicle-inspections/";
+const API_URL = "https://lynedge-car-record.onrender.com/vehicle-inspections/";
+const API_HEADERS = { "Content-Type": "application/json" };
 const TOTAL_PAGES = 5;
 
 /* ============ CHECKLIST DATA ============ */
@@ -233,11 +280,10 @@ const SECTIONS = {
     "Vehicle service record available and latest service date recorded",
     "Next service due date/odometer reading recorded" ]}
 };
-// Sections where a "Needs Attention" is considered safety-relevant for the summary warning
 const SAFETY_SECTIONS = ["A", "D", "E", "F"];
 
 /* ============ BUILD CHECKLIST TABLES ============ */
-const esc = s => s.replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
 document.querySelectorAll("[data-sections]").forEach(holder => {
   holder.dataset.sections.split(",").forEach(key => {
     const sec = SECTIONS[key];
@@ -259,27 +305,38 @@ document.querySelectorAll("[data-sections]").forEach(holder => {
   });
 });
 
-/* ============ SIGNATURE PAD ============ */
-const canvas = document.getElementById("sig");
-const ctx = canvas.getContext("2d");
-let drawing = false, signed = false;
-function sizeCanvas() {
-  const ratio = window.devicePixelRatio || 1;
-  const keep = signed ? canvas.toDataURL() : null;
-  canvas.width = canvas.clientWidth * ratio;
-  canvas.height = canvas.clientHeight * ratio;
-  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-  ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#1d2433";
-  if (keep) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, canvas.clientWidth, canvas.clientHeight); img.src = keep; }
+/* ============ SIGNATURE PADS ============ */
+function makePad(canvasId, clearId) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext("2d");
+  let drawing = false, signed = false;
+  function size() {
+    if (!canvas.clientWidth) return; // hidden page
+    const ratio = window.devicePixelRatio || 1;
+    const w = Math.round(canvas.clientWidth * ratio), h = Math.round(canvas.clientHeight * ratio);
+    if (canvas.width === w && canvas.height === h) return;
+    const keep = signed ? canvas.toDataURL() : null;
+    canvas.width = w; canvas.height = h;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#1d2433";
+    if (keep) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, canvas.clientWidth, canvas.clientHeight); img.src = keep; }
+  }
+  const pos = e => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  canvas.addEventListener("pointerdown", e => { size(); drawing = true; canvas.setPointerCapture(e.pointerId); const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+  canvas.addEventListener("pointermove", e => { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); signed = true; canvas.style.borderColor = ""; });
+  ["pointerup", "pointercancel"].forEach(ev => canvas.addEventListener(ev, () => { drawing = false; }));
+  const clear = () => { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.restore(); signed = false; };
+  document.getElementById(clearId).onclick = clear;
+  return { canvas, size, clear, isSigned: () => signed, data: () => canvas.toDataURL("image/png") };
 }
-const pos = e => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
-canvas.addEventListener("pointerdown", e => { drawing = true; canvas.setPointerCapture(e.pointerId); const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
-canvas.addEventListener("pointermove", e => { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); signed = true; });
-["pointerup", "pointercancel"].forEach(ev => canvas.addEventListener(ev, () => { drawing = false; }));
-document.getElementById("sigClear").onclick = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); signed = false; };
+const padSup = makePad("sig", "sigClear");
+const padDriver = makePad("sigDriver", "sigDriverClear");
+const padFinal = makePad("sigFinal", "sigFinalClear");
+const pads = [padSup, padDriver, padFinal];
 
 /* ============ PAGINATION ============ */
 let current = 1;
+const form = document.getElementById("form");
 const pages = [...document.querySelectorAll(".page")];
 const prevBtn = document.getElementById("prev"), nextBtn = document.getElementById("next"), submitBtn = document.getElementById("submit");
 const msg = document.getElementById("msg");
@@ -295,13 +352,14 @@ function render() {
   const label = `${current} / ${TOTAL_PAGES}`;
   document.getElementById("pageTop").textContent = label;
   document.getElementById("pageBottom").textContent = label;
-  const titles = ["Vehicle details & Sections A–B", "Sections C–D", "Sections E–F", "Sections G–H", "Review & submit"];
+  const titles = ["Vehicle details & Sections A–B", "Sections C–D", "Sections E–F", "Sections G–H", "Corrective action plan & sign-off"];
   document.getElementById("pageLabel").textContent = `Page ${current} of ${TOTAL_PAGES} — ${titles[current - 1]}`;
   prevBtn.style.visibility = current === 1 ? "hidden" : "visible";
   nextBtn.style.display = current === TOTAL_PAGES ? "none" : "";
   submitBtn.style.display = current === TOTAL_PAGES ? "" : "none";
   if (current === TOTAL_PAGES) buildSummary();
   clearMsg();
+  pads.forEach(p => p.size());
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -315,10 +373,10 @@ function validatePage(n) {
       inp.style.borderColor = bad ? "var(--red)" : "";
       if (bad) { firstBad = firstBad || inp; problems.push(inp.name); }
     });
-    canvas.style.borderColor = signed ? "" : "var(--red)";
-    if (!signed) { firstBad = firstBad || canvas; problems.push("signature"); }
+    padSup.canvas.style.borderColor = padSup.isSigned() ? "" : "var(--red)";
+    if (!padSup.isSigned()) { firstBad = firstBad || padSup.canvas; problems.push("signature"); }
   }
-  page.querySelectorAll(".row[data-id]").forEach(row => {
+  if (n <= 4) page.querySelectorAll(".row[data-id]").forEach(row => {
     const id = row.dataset.id;
     const val = form.querySelector(`input[name="status_${id}"]:checked`);
     const rem = row.querySelector(".rem");
@@ -327,9 +385,24 @@ function validatePage(n) {
     row.classList.toggle("err", bad);
     if (bad) { firstBad = firstBad || row; problems.push(id); }
   });
+  if (n === 5) {
+    const st = form.querySelector('input[name="overall_vehicle_status"]:checked');
+    const so = document.getElementById("statusOpts");
+    so.classList.toggle("err", !st);
+    if (!st) { firstBad = firstBad || so; problems.push("status"); }
+    const ack = document.getElementById("ackName");
+    ack.style.borderColor = ack.value.trim() ? "" : "var(--red)";
+    if (!ack.value.trim()) { firstBad = firstBad || ack; problems.push("ack"); }
+    [padDriver, padFinal].forEach(p => {
+      p.canvas.style.borderColor = p.isSigned() ? "" : "var(--red)";
+      if (!p.isSigned()) { firstBad = firstBad || p.canvas; problems.push("sig"); }
+    });
+  }
   if (problems.length) {
     showMsg(n === 1
       ? "Please complete all required fields, sign, and mark a status for every item. Items marked 'Needs Attention' need a remark."
+      : n === 5
+      ? "Please select the overall vehicle status, enter the driver's name, and provide both signatures."
       : "Please mark a status for every item. Items marked 'Needs Attention' need a remark.", "err");
     firstBad.scrollIntoView({ behavior: "smooth", block: "center" });
     return false;
@@ -337,7 +410,6 @@ function validatePage(n) {
   return true;
 }
 
-const form = document.getElementById("form");
 form.addEventListener("change", e => {
   const row = e.target.closest(".row[data-id]");
   if (!row) return;
@@ -345,9 +417,38 @@ form.addEventListener("change", e => {
   row.querySelector(".rem").classList.toggle("need", !!val && val.value === "Needs Attention");
   row.classList.remove("err");
 });
+form.addEventListener("change", e => { if (e.target.name === "overall_vehicle_status") document.getElementById("statusOpts").classList.remove("err"); });
 
 nextBtn.onclick = () => { if (validatePage(current)) { current++; render(); } };
 prevBtn.onclick = () => { if (current > 1) { current--; render(); } };
+
+/* ============ CORRECTIVE ACTION PLAN ============ */
+const capRows = document.getElementById("capRows");
+let capTouched = false;
+function addDefectRow(d = {}) {
+  const div = document.createElement("div");
+  div.className = "row";
+  div.innerHTML = `
+    <div class="cell"><small>Defect / Repair Required</small><input type="text" data-f="defect" value="${esc(d.defect || "")}"></div>
+    <div class="cell"><small>Priority</small><select data-f="priority"><option value=""></option><option${d.priority === "Urgent" ? " selected" : ""}>Urgent</option><option${d.priority === "Normal" ? " selected" : ""}>Normal</option></select></div>
+    <div class="cell"><small>Action Owner</small><input type="text" data-f="owner"></div>
+    <div class="cell"><small>Target Date</small><input type="date" data-f="target_date"></div>
+    <div class="cell"><small>Completed / Verified By &amp; Date</small><input type="text" data-f="verified_by"></div>`;
+  capRows.appendChild(div);
+}
+function resetDefects(items) {
+  capRows.innerHTML = "";
+  items.forEach(addDefectRow);
+  while (capRows.children.length < 4) addDefectRow();
+}
+capRows.addEventListener("input", () => { capTouched = true; });
+document.getElementById("addDefect").onclick = () => { addDefectRow(); capTouched = true; };
+function collectDefects() {
+  return [...capRows.children].map(r => {
+    const g = f => r.querySelector(`[data-f="${f}"]`).value.trim();
+    return { defect: g("defect"), priority: g("priority"), action_owner: g("owner"), target_date: g("target_date"), completed_verified_by: g("verified_by") };
+  }).filter(d => Object.values(d).some(Boolean));
+}
 
 /* ============ SUMMARY (PAGE 5) ============ */
 function collectItems() {
@@ -377,26 +478,39 @@ function buildSummary() {
   const safety = need.filter(i => SAFETY_SECTIONS.includes(i.section));
   document.getElementById("criticalNote").innerHTML = safety.length
     ? `<div class="critical"><b>Safety check:</b> ${safety.length} item(s) in tyres, lights, fluids or brakes/steering need attention. Any safety-critical defect must be reported immediately and the vehicle should not be used until it is deemed safe.</div>` : "";
+  // pre-fill the corrective action plan from flagged items until the supervisor edits it
+  if (!capTouched) {
+    resetDefects(need.map(i => ({
+      defect: `${i.item}${i.remarks ? " — " + i.remarks : ""}`,
+      priority: SAFETY_SECTIONS.includes(i.section) ? "Urgent" : "Normal"
+    })));
+  }
 }
 
 /* ============ SUBMIT VIA FETCH ============ */
 form.addEventListener("submit", async e => {
   e.preventDefault();
+  for (let n = 1; n <= TOTAL_PAGES; n++) { if (!validatePage(n)) { current = n; render(); validatePage(n); return; } }
   if (!document.getElementById("confirm").checked) { showMsg("Please tick the confirmation box before submitting.", "err"); return; }
-  for (let n = 1; n <= 4; n++) { if (!validatePage(n)) { current = n; render(); validatePage(n); return; } }
 
   const items = collectItems();
   const payload = {
     territory_name: form.territory_name.value.trim(),
     inspection_date: form.inspection_date.value,
     field_supervisor_name: form.field_supervisor_name.value.trim(),
-    supervisor_signature: canvas.toDataURL("image/png"),
+    supervisor_signature: padSup.data(),
     vehicle_user_driver: form.vehicle_user_driver.value.trim(),
     vehicle_registration_no: form.vehicle_registration_no.value.trim(),
     vehicle_make_model: form.vehicle_make_model.value.trim(),
     odometer_km: Number(form.odometer_km.value),
     items,
     summary: { good: items.filter(i => i.status === "Good").length, needs_attention: items.filter(i => i.status === "Needs Attention").length },
+    corrective_actions: collectDefects(),
+    overall_vehicle_status: form.querySelector('input[name="overall_vehicle_status"]:checked').value,
+    driver_acknowledgement_name: form.driver_ack_name.value.trim(),
+    driver_acknowledgement_signature: padDriver.data(),
+    supervisor_final_comments: form.overall_remarks.value.trim(),
+    supervisor_final_signature: padFinal.data(),
     overall_remarks: form.overall_remarks.value.trim(),
     submitted_at: new Date().toISOString()
   };
@@ -409,7 +523,8 @@ form.addEventListener("submit", async e => {
       throw new Error(`Server responded ${res.status}${detail ? ": " + detail : ""}`);
     }
     showMsg("Inspection submitted successfully. Thank you.", "ok");
-    form.reset(); document.getElementById("sigClear").click();
+    form.reset(); pads.forEach(p => p.clear());
+    capTouched = false; capRows.innerHTML = "";
     document.querySelectorAll(".rem.need").forEach(r => r.classList.remove("need"));
     submitBtn.style.display = "none"; prevBtn.style.visibility = "hidden";
   } catch (err) {
@@ -420,8 +535,9 @@ form.addEventListener("submit", async e => {
 
 /* ============ INIT ============ */
 document.getElementById("inspDate").valueAsDate = new Date();
-window.addEventListener("resize", sizeCanvas);
-render(); sizeCanvas();
+window.addEventListener("resize", () => pads.forEach(p => p.size()));
+resetDefects([]);
+render();
 </script>
 </body>
 </html>
