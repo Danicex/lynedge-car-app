@@ -204,7 +204,7 @@ class InspectionCreate(SQLModel):
     supervisor_final_signature: str = Field(max_length=700_000)
     overall_remarks: str = Field(default="", max_length=5000)  # falls back to final comments
     submitted_at: Optional[str] = Field(default=None, max_length=40)
-
+    video_url: Optional[str] = Field(default=None)
     @field_validator("supervisor_signature", "driver_acknowledgement_signature", "supervisor_final_signature")
     @classmethod
     def must_be_png(cls, v: str) -> str:
