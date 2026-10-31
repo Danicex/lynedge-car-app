@@ -35,7 +35,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Dict, List, Literal, Optional, Tuple
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request,  UploadFile, File
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -44,6 +44,14 @@ from pydantic import StringConstraints, field_validator
 from sqlalchemy import JSON, Column, Text
 from sqlmodel import Field, Session, SQLModel, create_engine, func, select
 from starlette.exceptions import HTTPException as StarletteHTTPException
+import uuid
+import boto3
+
+from dotenv import load_dotenv
+load_dotenv()
+import logging
+logger = logging.getLogger("uvicorn.error")
+
 
 # ---------------- config ----------------
 DB_PATH = os.getenv("DB_PATH", "inspections.db")
@@ -51,9 +59,13 @@ DATABASE_URL = os.getenv("DATABASE_URL") or f"sqlite:///{DB_PATH}"
 if DATABASE_URL.startswith("postgres://"):  # some hosts still hand out the old scheme
     DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
 TOKEN_TTL = timedelta(hours=1)
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:5500").split(",")  # restrict in production
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS") # restrict in production
 MAX_FAILED_LOGINS = 5          # per email + IP
 LOCKOUT_SECONDS = 15 * 60
+R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
+R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
+R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
+R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
 
 engine = create_engine(
     DATABASE_URL,
@@ -142,7 +154,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Vehicle Inspection API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=[ALLOWED_ORIGINS],
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
@@ -432,6 +444,48 @@ def get_inspection(inspection_id: int, _admin: AdminDep, session: SessionDep):
     return row
 
 
+# ---------------- FILE UPLOAD ----------------
+
+r2 = boto3.client(
+    "s3",
+    endpoint_url=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
+    aws_access_key_id=R2_ACCESS_KEY_ID,
+    aws_secret_access_key=R2_SECRET_ACCESS_KEY,
+    region_name="auto",
+)
+
+
+@app.post("/upload-video")
+async def upload_video(file: UploadFile = File(...)):
+    print(bool(R2_ACCOUNT_ID), bool(R2_ACCESS_KEY_ID), bool(R2_SECRET_ACCESS_KEY), bool(R2_BUCKET_NAME))
+    if file.content_type != "video/mp4":
+        raise HTTPException(
+            status_code=400,
+            detail="Only MP4 videos are allowed.",
+        )
+
+    video_id = f"{uuid.uuid4()}.mp4"
+
+    try:
+        r2.upload_fileobj(
+            file.file,
+            R2_BUCKET_NAME,
+            video_id,
+            ExtraArgs={"ContentType": "video/mp4"},
+        )
+
+        return {
+            "message": "Video uploaded successfully",
+            "video_id": video_id,
+        }
+
+    except Exception as e:
+        logger.exception("R2 upload failed")  # prints full traceback in the uvicorn console
+        raise HTTPException(status_code=500, detail="Failed to upload video.") from e
+
+    finally:
+        await file.close()
+        
 # ---------------- CLI: python main.py create-admin ----------------
 if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1] == "create-admin":

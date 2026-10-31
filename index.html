@@ -112,6 +112,7 @@
   footer { font-size: 12px; color: var(--muted); margin-top: 8px; display: flex; justify-content: space-between; }
 </style>
 <script src="test-form.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body>
 <div class="sheet">
@@ -210,6 +211,11 @@
     </div>
     <footer><span>LYN-EDGE PHARMACEUTICALS LTD</span><span id="pageBottom">1 / 5</span></footer>
   </form>
+  <div class="py-4">
+    <input type="file" id="video_file" accept="video/mp4" class="border-1">
+    <button id="upload_btn" onclick="handle_upload()" class="btn pri">Upload Video</button> 
+  </div>
+<br>
    <a href="./admin-panel.html"><button type="button" class="btn sec">admin page</button></a>
 </div>
 
@@ -217,8 +223,56 @@
 /* ============ CONFIG ============ */
 // const API_URL = "http://127.0.0.1:8000/api/vehicle-inspections/";
 const API_URL = "https://lynedge-car-record.onrender.com/api/vehicle-inspections/";
+const BASE_URL = "https://lynedge-car-record.onrender.com";
+// const BASE_URL = "http://127.0.0.1:8000";
 const API_HEADERS = { "Content-Type": "application/json" };
 const TOTAL_PAGES = 5;
+
+/* ============ HANDLE FILE UPLOAD ============ */
+async function handle_upload() {
+    const fileInput = document.getElementById("video_file");
+    const button = document.getElementById("upload_btn");
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert("Please select a video.");
+        return;
+    }
+
+    if (file.type !== "video/mp4") {
+        alert("Only MP4 videos are allowed.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        button.disabled = true;
+        button.textContent = "Uploading...";
+
+        const response = await fetch(`${BASE_URL}/upload-video`, {
+            method: "POST",
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.detail || "Upload failed");
+        }
+
+        console.log("Upload successful:", result);
+        alert("Video uploaded successfully!");
+
+    } catch (error) {
+        console.error("Upload error:", error);
+        alert(error.message);
+    } finally {
+        button.disabled = false;
+        button.textContent = "Upload Video";
+    }
+}
 
 /* ============ CHECKLIST DATA ============ */
 const SECTIONS = {
