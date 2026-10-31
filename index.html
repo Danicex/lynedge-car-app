@@ -110,9 +110,19 @@
   .btn.sub { background: var(--good); border-color: var(--good); color: #fff; }
   .btn:disabled { opacity: .6; cursor: wait; }
   footer { font-size: 12px; color: var(--muted); margin-top: 8px; display: flex; justify-content: space-between; }
+
+  /* video upload */
+  .upload { border: 1px dashed var(--muted); border-radius: 6px; background: #fbfcfe; padding: 12px; }
+  .upload.err { border-color: var(--red); background: #fff1ef; }
+  .upload input[type=file] { width: 100%; font: inherit; font-size: 13px; }
+  .upload .bar { height: 6px; border-radius: 3px; background: var(--line); margin-top: 10px; overflow: hidden; display: none; }
+  .upload .bar > div { height: 100%; width: 0; background: var(--navy); transition: width .15s; }
+  .upload-status { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .upload-status.ok { color: var(--good); font-weight: 600; }
+  .upload-status.bad { color: #8a1f11; }
+  .adminlink { margin-top: 16px; }
 </style>
 <script src="test-form.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body>
 <div class="sheet">
@@ -198,6 +208,17 @@
         </div>
       </div>
 
+      <div class="block">
+        <label class="f" for="videoFile">Vehicle Inspection Video <em>*</em></label>
+        <div class="upload" id="uploadBox">
+          <input type="file" id="videoFile" accept="video/mp4">
+          <div class="bar" id="uploadBarWrap"><div id="uploadBar"></div></div>
+          <div class="upload-status" id="uploadStatus">No video uploaded yet (MP4 only).</div>
+          <button type="button" class="linkbtn" id="videoRemove" style="display:none">Remove video</button>
+        </div>
+        <input type="hidden" id="videoUrl" name="video_url">
+      </div>
+
       <p class="declaration">Supervisor's declaration: I confirm that I have inspected the vehicle listed above, recorded observed defects accurately, and escalated any safety-critical issues for prompt corrective action.<br>Submit one completed checklist per vehicle to the designated manager after inspection.</p>
       <label class="confirm"><input type="checkbox" id="confirm"> <span>I confirm the supervisor's declaration above.</span></label>
     </section>
@@ -211,12 +232,10 @@
     </div>
     <footer><span>LYN-EDGE PHARMACEUTICALS LTD</span><span id="pageBottom">1 / 5</span></footer>
   </form>
-  <div class="py-4">
-    <input type="file" id="video_file" accept="video/mp4" class="border-1">
-    <button id="upload_btn" onclick="handle_upload()" class="btn pri">Upload Video</button> 
+
+  <div class="adminlink">
+    <a href="./admin-panel.html"><button type="button" class="btn sec">admin page</button></a>
   </div>
-<br>
-   <a href="./admin-panel.html"><button type="button" class="btn sec">admin page</button></a>
 </div>
 
 <script>
@@ -227,52 +246,6 @@ const BASE_URL = "https://lynedge-car-record.onrender.com";
 // const BASE_URL = "http://127.0.0.1:8000";
 const API_HEADERS = { "Content-Type": "application/json" };
 const TOTAL_PAGES = 5;
-
-/* ============ HANDLE FILE UPLOAD ============ */
-async function handle_upload() {
-    const fileInput = document.getElementById("video_file");
-    const button = document.getElementById("upload_btn");
-    const file = fileInput.files[0];
-
-    if (!file) {
-        alert("Please select a video.");
-        return;
-    }
-
-    if (file.type !== "video/mp4") {
-        alert("Only MP4 videos are allowed.");
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-        button.disabled = true;
-        button.textContent = "Uploading...";
-
-        const response = await fetch(`${BASE_URL}/upload-video`, {
-            method: "POST",
-            body: formData
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.detail || "Upload failed");
-        }
-
-        console.log("Upload successful:", result);
-        alert("Video uploaded successfully!");
-
-    } catch (error) {
-        console.error("Upload error:", error);
-        alert(error.message);
-    } finally {
-        button.disabled = false;
-        button.textContent = "Upload Video";
-    }
-}
 
 /* ============ CHECKLIST DATA ============ */
 const SECTIONS = {
@@ -417,6 +390,74 @@ function render() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+/* ============ VIDEO UPLOAD ============ */
+const videoFile = document.getElementById("videoFile");
+const videoUrl = document.getElementById("videoUrl");
+const uploadBox = document.getElementById("uploadBox");
+const uploadStatus = document.getElementById("uploadStatus");
+const uploadBarWrap = document.getElementById("uploadBarWrap");
+const uploadBar = document.getElementById("uploadBar");
+const videoRemove = document.getElementById("videoRemove");
+let uploading = false;
+
+function setUploadStatus(text, cls) { uploadStatus.textContent = text; uploadStatus.className = "upload-status " + (cls || ""); }
+
+function resetVideo() {
+  videoFile.value = ""; videoUrl.value = ""; uploading = false;
+  uploadBarWrap.style.display = "none"; uploadBar.style.width = "0";
+  videoRemove.style.display = "none"; videoFile.style.display = "";
+  uploadBox.classList.remove("err");
+  setUploadStatus("No video uploaded yet (MP4 only).");
+}
+videoRemove.onclick = resetVideo;
+
+videoFile.addEventListener("change", () => {
+  const file = videoFile.files[0];
+  videoUrl.value = "";
+  if (!file) return;
+  if (file.type !== "video/mp4") {
+    videoFile.value = "";
+    setUploadStatus("Only MP4 videos are allowed.", "bad");
+    return;
+  }
+  uploadBox.classList.remove("err");
+  uploading = true;
+  submitBtn.disabled = true;
+  uploadBarWrap.style.display = "block"; uploadBar.style.width = "0";
+  setUploadStatus("Uploading… 0%");
+
+  const fd = new FormData();
+  fd.append("file", file);
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", `${BASE_URL}/upload-video`);
+  xhr.upload.onprogress = e => {
+    if (!e.lengthComputable) return;
+    const pct = Math.round((e.loaded / e.total) * 100);
+    uploadBar.style.width = pct + "%";
+    setUploadStatus(`Uploading… ${pct}%`);
+  };
+  xhr.onload = () => {
+    uploading = false; submitBtn.disabled = false;
+    let res = {}; try { res = JSON.parse(xhr.responseText); } catch (_) {}
+    if (xhr.status >= 200 && xhr.status < 300 && res.video_url) {
+      videoUrl.value = res.video_url;
+      uploadBar.style.width = "100%";
+      setUploadStatus("Video uploaded: " + file.name, "ok");
+      videoFile.style.display = "none"; videoRemove.style.display = "inline";
+    } else {
+      videoFile.value = "";
+      uploadBarWrap.style.display = "none";
+      setUploadStatus(res.detail || "Upload failed. Please try again.", "bad");
+    }
+  };
+  xhr.onerror = () => {
+    uploading = false; submitBtn.disabled = false; videoFile.value = "";
+    uploadBarWrap.style.display = "none";
+    setUploadStatus("Network error. Please try again.", "bad");
+  };
+  xhr.send(fd);
+});
+
 /* ============ VALIDATION ============ */
 function validatePage(n) {
   const page = pages[n - 1];
@@ -451,12 +492,22 @@ function validatePage(n) {
       p.canvas.style.borderColor = p.isSigned() ? "" : "var(--red)";
       if (!p.isSigned()) { firstBad = firstBad || p.canvas; problems.push("sig"); }
     });
+    uploadBox.classList.toggle("err", !videoUrl.value);
+    if (!videoUrl.value) {
+      firstBad = firstBad || uploadBox;
+      problems.push("video");
+      if (uploading) {
+        showMsg("Please wait for the video to finish uploading.", "err");
+        uploadBox.scrollIntoView({ behavior: "smooth", block: "center" });
+        return false;
+      }
+    }
   }
   if (problems.length) {
     showMsg(n === 1
       ? "Please complete all required fields, sign, and mark a status for every item. Items marked 'Needs Attention' need a remark."
       : n === 5
-      ? "Please select the overall vehicle status, enter the driver's name, and provide both signatures."
+      ? "Please select the overall vehicle status, enter the driver's name, provide both signatures, and upload the inspection video."
       : "Please mark a status for every item. Items marked 'Needs Attention' need a remark.", "err");
     firstBad.scrollIntoView({ behavior: "smooth", block: "center" });
     return false;
@@ -566,6 +617,7 @@ form.addEventListener("submit", async e => {
     supervisor_final_comments: form.overall_remarks.value.trim(),
     supervisor_final_signature: padFinal.data(),
     overall_remarks: form.overall_remarks.value.trim(),
+    video_url: videoUrl.value,
     submitted_at: new Date().toISOString()
   };
 
@@ -578,6 +630,7 @@ form.addEventListener("submit", async e => {
     }
     showMsg("Inspection submitted successfully. Thank you.", "ok");
     form.reset(); pads.forEach(p => p.clear());
+    resetVideo();
     capTouched = false; capRows.innerHTML = "";
     document.querySelectorAll(".rem.need").forEach(r => r.classList.remove("need"));
     submitBtn.style.display = "none"; prevBtn.style.visibility = "hidden";

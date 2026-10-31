@@ -66,6 +66,7 @@ R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
 R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
 R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
 R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
+R2_PUBLIC_URL = os.getenv("R2_PUBLIC_URL")
 
 engine = create_engine(
     DATABASE_URL,
@@ -128,7 +129,7 @@ class CarFormData(SQLModel, table=True):
     supervisor_final_comments: Optional[str] = None
     supervisor_final_signature: str = Field(sa_column=Column(Text, nullable=False))        # PNG data URL
     overall_remarks: Optional[str] = None                # same text as final comments (kept for compatibility)
-
+    video_url: Optional[str] = None 
     submitted_at: Optional[str] = None
     created_at: str
 
@@ -456,13 +457,9 @@ r2 = boto3.client(
 
 
 @app.post("/upload-video")
-async def upload_video(file: UploadFile = File(...)):
-    print(bool(R2_ACCOUNT_ID), bool(R2_ACCESS_KEY_ID), bool(R2_SECRET_ACCESS_KEY), bool(R2_BUCKET_NAME))
+def upload_video(file: UploadFile = File(...)):
     if file.content_type != "video/mp4":
-        raise HTTPException(
-            status_code=400,
-            detail="Only MP4 videos are allowed.",
-        )
+        raise HTTPException(status_code=400, detail="Only MP4 videos are allowed.")
 
     video_id = f"{uuid.uuid4()}.mp4"
 
@@ -473,19 +470,17 @@ async def upload_video(file: UploadFile = File(...)):
             video_id,
             ExtraArgs={"ContentType": "video/mp4"},
         )
-
         return {
             "message": "Video uploaded successfully",
             "video_id": video_id,
+            "video_url": f"{R2_PUBLIC_URL}/{video_id}",
         }
-
     except Exception as e:
-        logger.exception("R2 upload failed")  # prints full traceback in the uvicorn console
+        logger.exception("R2 upload failed")
         raise HTTPException(status_code=500, detail="Failed to upload video.") from e
-
     finally:
-        await file.close()
-        
+        file.file.close()
+            
 # ---------------- CLI: python main.py create-admin ----------------
 if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1] == "create-admin":

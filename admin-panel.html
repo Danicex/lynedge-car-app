@@ -140,7 +140,7 @@
             <tr>
               <th>#</th><th>Date</th><th>Territory</th><th>Supervisor</th><th>Driver</th>
               <th>Reg. No.</th><th>Make / Model</th><th class="num">Odometer (km)</th>
-              <th class="num">Good</th><th class="num">Attention</th><th class="col-action noprint"></th>
+              <th class="num">Good</th><th class="num">Attention</th><th class="num">Video Link</th><th class="col-action noprint"></th>
             </tr>
           </thead>
           <tbody id="rows"></tbody>
@@ -335,6 +335,9 @@ function render() {
       <td class="num">${esc(Number(r.odometer_km).toLocaleString())}</td>
       <td class="num"><span class="pill g">${esc(r.good_count)}</span></td>
       <td class="num"><span class="pill ${r.needs_attention_count > 0 ? "n" : "z"}">${esc(r.needs_attention_count)}</span></td>
+      <td>${r.video_url
+  ? `<a href="${esc(r.video_url)}" target="_blank" rel="noopener noreferrer">video link</a>`
+  : "-"}</td>
       <td class="col-action noprint"><button class="btn sm" data-view="${esc(r.id)}" type="button">View</button></td>
     </tr>`).join("");
   $("empty").hidden = list.length > 0;
